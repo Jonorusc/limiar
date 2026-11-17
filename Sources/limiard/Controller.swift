@@ -9,6 +9,10 @@ final class Controller {
     /// After a CHIE change, ioreg's ExternalConnected can lag a few seconds.
     private static let adapterSettleInterval: TimeInterval = 10
     private static let pollInterval: TimeInterval = 60
+    /// While wall power is cut, macOS sends no power-source events when the cable is plugged or
+    /// pulled, so poll faster to notice it (an SMC + registry read every 5 s is negligible).
+    private static let fastPollInterval: TimeInterval = 5
+    private var currentPollInterval: TimeInterval = 0
     /// Captured at launch: if the bundle is replaced later, the app sees a different stamp on disk.
     private static let executableStamp = DaemonStatus.stamp(of: Bundle.main.executableURL)
 
@@ -50,6 +54,7 @@ final class Controller {
         power.start()
 
         let timer = DispatchSource.makeTimerSource(queue: .main)
+        currentPollInterval = Self.pollInterval
         timer.schedule(deadline: .now() + Self.pollInterval, repeating: Self.pollInterval, leeway: .seconds(5))
         timer.setEventHandler { [weak self] in
             MainActor.assumeIsolated {
@@ -102,12 +107,16 @@ final class Controller {
     }
 
     private func evaluate(_ event: PolicyEvent) {
-        let reading: BatteryReading
+        var reading: BatteryReading
         do {
             reading = try BatteryReader.read()
         } catch {
             fail(.batteryReadFailed, detail: String(describing: error))
             return
+        }
+        // ExternalConnected goes false while we cut power; AC-W still knows if a cable is there.
+        if let plugged = smc.isChargerPlugged() {
+            reading.chargerConnected = plugged || reading.externalConnected
         }
         lastBattery = reading
 
@@ -154,8 +163,16 @@ final class Controller {
             }
         }
 
+        updatePollInterval()
         for notice in decision.notices { emit(notice) }
         pushStatusIfChanged()
+    }
+
+    private func updatePollInterval() {
+        let wanted = adapterEnabled ? Self.pollInterval : Self.fastPollInterval
+        guard wanted != currentPollInterval, let pollTimer else { return }
+        currentPollInterval = wanted
+        pollTimer.schedule(deadline: .now() + wanted, repeating: wanted, leeway: .seconds(wanted > 10 ? 5 : 1))
     }
 
     /// Re-evaluate once the adapter state has settled so unplug detection is reliable.

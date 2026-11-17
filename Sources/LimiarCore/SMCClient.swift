@@ -70,6 +70,18 @@ public final class SMCClient {
         try write(Self.adapterKey, [enabled ? Self.adapterEnabledValue : Self.adapterDisabledValue])
     }
 
+    // MARK: Charger presence
+
+    /// `AC-W` holds the connected adapter's power class; 0xFF (-1) means no adapter.
+    /// Unlike ExternalConnected it keeps reporting the charger while CHIE cuts wall power.
+    public static let adapterPresenceKey = "AC-W"
+
+    /// `nil` when the key isn't available on this Mac.
+    public func isChargerPlugged() -> Bool? {
+        guard let byte = try? read(Self.adapterPresenceKey).first else { return nil }
+        return byte != 0xFF
+    }
+
     // MARK: MagSafe LED
 
     /// `ACLC` drives the MagSafe connector LED.

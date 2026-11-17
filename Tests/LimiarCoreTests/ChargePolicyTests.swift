@@ -2,8 +2,9 @@ import Foundation
 import Testing
 @testable import LimiarCore
 
-private func reading(_ soc: Int, plugged: Bool = true, full: Bool = false) -> BatteryReading {
-    BatteryReading(soc: soc, isCharging: plugged && soc < 100, externalConnected: plugged, fullyCharged: full)
+private func reading(_ soc: Int, plugged: Bool = true, full: Bool = false, external: Bool? = nil) -> BatteryReading {
+    BatteryReading(soc: soc, isCharging: plugged && soc < 100, externalConnected: external ?? plugged,
+                   fullyCharged: full, chargerConnected: plugged)
 }
 
 private func eval(
@@ -97,7 +98,10 @@ struct SleepTests {
 @Suite("Top-up to 100%")
 struct TopUpTests {
     @Test func enablesAdapterAboveLimit() {
-        let d = eval(90, adapter: false, mode: .topUp(completed: false), plugged: false)
+        // Power was cut at the limit: ExternalConnected reads false, but the cable is plugged in.
+        let r = BatteryReading(soc: 90, isCharging: false, externalConnected: false, chargerConnected: true)
+        let d = ChargePolicy.evaluate(settings: Settings(), mode: .topUp(completed: false), adapterEnabled: false,
+                                      reading: r, event: .tick)
         #expect(d.adapterEnabled == true)
         #expect(d.mode == .topUp(completed: false))
     }
@@ -116,9 +120,19 @@ struct TopUpTests {
         #expect(d.adapterEnabled == false) // above limit: cut so replugging won't recharge
     }
 
-    @Test func unsettledAdapterDoesNotEndTopUp() {
-        let d = eval(85, adapter: true, settled: false, mode: .topUp(completed: false), plugged: false)
+    @Test func cutPowerWithCableStillPluggedDoesNotEndTopUp() {
+        // While CHIE switches, ExternalConnected reads false but the cable is still there.
+        let r = BatteryReading(soc: 85, isCharging: false, externalConnected: false, chargerConnected: true)
+        let d = ChargePolicy.evaluate(settings: Settings(), mode: .topUp(completed: false), adapterEnabled: true,
+                                      adapterSettled: false, reading: r, event: .tick)
         #expect(d.mode == .topUp(completed: false))
+    }
+
+    @Test func unplugWhilePowerCutEndsTopUp() {
+        let r = BatteryReading(soc: 85, isCharging: false, externalConnected: false, chargerConnected: false)
+        let d = ChargePolicy.evaluate(settings: Settings(), mode: .topUp(completed: false), adapterEnabled: false,
+                                      reading: r, event: .tick)
+        #expect(d.mode == .normal)
     }
 
     @Test func staysOnDuringSleep() {
@@ -164,6 +178,11 @@ struct MagSafeLEDTests {
 
     @Test func systemWhenOptionOff() {
         #expect(eval(80, adapter: true, settings: Settings(magSafeGreenWhenPaused: false)).led == .system)
+    }
+
+    @Test func systemWhenUnplugged() {
+        // No cable means no LED to colour: give control back to macOS.
+        #expect(eval(90, adapter: false, plugged: false).led == .system)
     }
 
     @Test func systemWhenDisabled() {

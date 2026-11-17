@@ -95,7 +95,7 @@ final class AppModel {
         guard let status, let battery = status.battery else {
             // No daemon yet: macOS is in charge, so mirror its own LED (orange charging, green full).
             let local = self.battery
-            let tint: StatusTint = local?.isCharging == true ? .charging : (local?.externalConnected == true ? .holding : .neutral)
+            let tint: StatusTint = local?.isCharging == true ? .charging : (local?.chargerConnected == true ? .holding : .neutral)
             return DisplayState(soc: soc, title: String(localized: "Background service not running"),
                                 tint: tint, isCharging: local?.isCharging ?? false)
         }
@@ -112,10 +112,13 @@ final class AppModel {
             if !settings.enabled {
                 title = battery.isCharging ? String(localized: "Charging — limit off") : String(localized: "Limit off")
             } else if !status.adapterEnabled {
-                title = String(localized: "Paused — resumes at \(settings.resumeAt)%")
+                // Power is cut either way; only say "paused" when a cable is actually plugged in.
+                title = battery.chargerConnected
+                    ? String(localized: "Paused — resumes at \(settings.resumeAt)%")
+                    : String(localized: "On battery")
             } else if battery.isCharging {
                 title = String(localized: "Charging to \(settings.limit)%")
-            } else if battery.externalConnected {
+            } else if battery.chargerConnected {
                 title = String(localized: "Plugged in, not charging")
             } else {
                 title = String(localized: "On battery")
@@ -127,11 +130,12 @@ final class AppModel {
     /// Same rules the daemon uses for the MagSafe LED, plus macOS's own (orange charging, green full).
     private static func tint(for status: DaemonStatus, battery: BatteryReading) -> StatusTint {
         if battery.isCharging { return .charging }
+        // No cable: the MagSafe light is off, so the icon goes neutral.
+        guard battery.chargerConnected else { return .neutral }
         if status.settings.enabled && !status.adapterEnabled {
             return status.settings.magSafeGreenWhenPaused || !status.hasMagSafeLED ? .holding : .charging
         }
-        if battery.externalConnected { return .holding }
-        return .neutral
+        return .holding
     }
 
     // MARK: Actions

@@ -43,8 +43,8 @@ public enum ChargePolicy {
         let settings = rawSettings.validated()
         var decision = evaluateAdapter(settings: settings, mode: mode, adapterEnabled: adapterEnabled,
                                        adapterSettled: adapterSettled, reading: reading, event: event)
-        // Green LED = "plugged in but deliberately not charging".
-        let holding = settings.enabled && !decision.adapterEnabled
+        // Green LED = "plugged in but deliberately not charging". No cable, no LED: hand it back.
+        let holding = settings.enabled && !decision.adapterEnabled && reading.chargerConnected
         decision.led = (holding && settings.magSafeGreenWhenPaused) ? .green : .system
         return decision
     }
@@ -64,9 +64,9 @@ public enum ChargePolicy {
 
         switch mode {
         case .topUp(let completed):
-            // With the adapter enabled (and settled after a CHIE change), ExternalConnected is
-            // trustworthy: unplugging ends the top-up.
-            if adapterEnabled && adapterSettled && !reading.externalConnected {
+            // Unplugging ends the top-up. chargerConnected survives CHIE changes, so no settling
+            // delay is needed; the extra check guards against a reading taken mid-switch.
+            if !reading.chargerConnected && (adapterSettled || !reading.externalConnected) {
                 return evaluateNormal(settings, adapterEnabled: adapterEnabled, reading: reading, event: event, notices: [])
             }
             let full = reading.fullyCharged || reading.soc >= 100

@@ -10,13 +10,16 @@ public struct BatteryReading: Codable, Equatable, Sendable {
     public var amperage: Int            // mA, negative = discharging
     public var cycleCount: Int
     public var healthPercent: Int       // AppleRawMaxCapacity / DesignCapacity
-    /// Physical charger signals that may survive a CHIE cut (used only for display).
     public var rawExternalConnected: Bool
+    /// Negotiated adapter wattage; drops to 0 when the cable is pulled, even while CHIE cuts power.
     public var adapterWatts: Int
+    /// A charger is physically plugged in. Unlike `externalConnected`, this stays true while
+    /// Limiar cuts wall power (verified: AdapterDetails.Watts 30→0 and SMC AC-W 03→ff on unplug).
+    public var chargerConnected: Bool
 
     public init(soc: Int, isCharging: Bool, externalConnected: Bool, fullyCharged: Bool = false,
                 amperage: Int = 0, cycleCount: Int = 0, healthPercent: Int = 100,
-                rawExternalConnected: Bool? = nil, adapterWatts: Int = 0) {
+                rawExternalConnected: Bool? = nil, adapterWatts: Int = 0, chargerConnected: Bool? = nil) {
         self.soc = soc
         self.isCharging = isCharging
         self.externalConnected = externalConnected
@@ -26,6 +29,31 @@ public struct BatteryReading: Codable, Equatable, Sendable {
         self.healthPercent = healthPercent
         self.rawExternalConnected = rawExternalConnected ?? externalConnected
         self.adapterWatts = adapterWatts
+        self.chargerConnected = chargerConnected ?? (externalConnected || adapterWatts > 0)
+    }
+
+    // Tolerant decoding: app and daemon may briefly run different builds.
+    private enum CodingKeys: String, CodingKey {
+        case soc, isCharging, externalConnected, fullyCharged, amperage, cycleCount, healthPercent
+        case rawExternalConnected, adapterWatts, chargerConnected
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let external = try c.decodeIfPresent(Bool.self, forKey: .externalConnected) ?? false
+        let watts = try c.decodeIfPresent(Int.self, forKey: .adapterWatts) ?? 0
+        self.init(
+            soc: try c.decodeIfPresent(Int.self, forKey: .soc) ?? 0,
+            isCharging: try c.decodeIfPresent(Bool.self, forKey: .isCharging) ?? false,
+            externalConnected: external,
+            fullyCharged: try c.decodeIfPresent(Bool.self, forKey: .fullyCharged) ?? false,
+            amperage: try c.decodeIfPresent(Int.self, forKey: .amperage) ?? 0,
+            cycleCount: try c.decodeIfPresent(Int.self, forKey: .cycleCount) ?? 0,
+            healthPercent: try c.decodeIfPresent(Int.self, forKey: .healthPercent) ?? 100,
+            rawExternalConnected: try c.decodeIfPresent(Bool.self, forKey: .rawExternalConnected),
+            adapterWatts: watts,
+            chargerConnected: try c.decodeIfPresent(Bool.self, forKey: .chargerConnected)
+        )
     }
 }
 
