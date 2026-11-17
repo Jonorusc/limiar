@@ -226,7 +226,12 @@ final class AppModel {
                 guard let self, !Task.isCancelled, !self.isConnected else { return }
                 let previous = self.serviceState
                 self.serviceState = ServiceInstaller.state
-                if self.serviceState == .enabled, previous != .enabled { self.client.connect() }
+                if self.serviceState == .enabled, previous != .enabled {
+                    // Just approved. If launchd still holds a stale registration, the next failed
+                    // connection triggers one more automatic repair (which keeps the approval).
+                    self.autoRepairAttempted = false
+                    self.client.connect()
+                }
             }
         }
     }
