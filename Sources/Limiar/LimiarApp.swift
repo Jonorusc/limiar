@@ -129,4 +129,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate()
         welcomeWindow = window
     }
+
+    // MARK: Quit confirmation
+
+    private static let skipQuitConfirmationKey = "skipQuitConfirmation"
+
+    /// Quitting only removes the menu bar icon: the background service keeps enforcing the limit.
+    /// Say so once, so people don't think they turned the limit off (or that they must keep the app open).
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if UserDefaults.standard.bool(forKey: Self.skipQuitConfirmationKey) { return .terminateNow }
+        // Logout, restart and shutdown carry a quit reason: never block those.
+        if NSAppleEventManager.shared().currentAppleEvent?.attributeDescriptor(forKeyword: kAEQuitReason) != nil {
+            return .terminateNow
+        }
+        // Nothing to explain if the limit isn't active.
+        guard model.isConnected, model.settings.enabled else { return .terminateNow }
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Quit Limiar?")
+        alert.informativeText = String(localized: "Your charge limit stays on in the background. You'll just stop seeing Limiar in the menu bar until you open it again.")
+        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = String(localized: "Don't ask again")
+        NSApp.activate()
+        let response = alert.runModal()
+        if alert.suppressionButton?.state == .on {
+            UserDefaults.standard.set(true, forKey: Self.skipQuitConfirmationKey)
+        }
+        return response == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+    }
 }

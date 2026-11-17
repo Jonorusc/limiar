@@ -92,6 +92,12 @@
 "Turn On Charge Limit" = "Ativar Limite de Carga";
 "macOS will ask you to allow Limiar once." = "O macOS vai pedir sua permissão uma vez.";
 
+/* Quit confirmation */
+"Quit Limiar?" = "Sair do Limiar?";
+"Your charge limit stays on in the background. You'll just stop seeing Limiar in the menu bar until you open it again." = "O limite de carga continua ativo em segundo plano. Você só deixa de ver o Limiar na barra de menus até abrir de novo.";
+"Quit" = "Sair";
+"Don't ask again" = "Não perguntar de novo";
+
 /* Notifications */
 "Paused at %lld%%" = "Pausada em %lld%%";
 "Your Mac is running on battery until it's time to charge again." = "O Mac está usando a bateria até a hora de carregar de novo.";
