@@ -46,9 +46,14 @@
 "Couldn't read the battery." = "Não foi possível ler a bateria.";
 "Couldn't write SMC key %@." = "Não foi possível gravar a chave %@ no SMC.";
 
-"Limiar was updated" = "O Limiar foi atualizado";
-"macOS needs you to allow the new version once. Charging works normally until then." = "O macOS precisa que você permita a nova versão uma vez. Até lá, a carga funciona normalmente.";
-"Allow Again…" = "Permitir de Novo…";
+"Connecting…" = "Conectando…";
+"Starting Limiar…" = "Iniciando o Limiar…";
+"This takes a few seconds." = "Isso leva alguns segundos.";
+"The background service isn't responding" = "O serviço em segundo plano não está respondendo";
+"This usually happens after updating Limiar. Turn it on again; macOS may ask you to allow it once more." = "Isso costuma acontecer depois de atualizar o Limiar. Ative de novo; o macOS pode pedir sua permissão mais uma vez.";
+"Turn On Again" = "Ativar de Novo";
+"Not responding" = "Não está respondendo";
+"Turn on the background service below to change these." = "Ative o serviço em segundo plano abaixo para mudar essas opções.";
 
 /* Settings */
 "Charging" = "Carga";

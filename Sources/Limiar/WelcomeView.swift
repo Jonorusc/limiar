@@ -42,14 +42,16 @@ struct WelcomeView: View {
         }
         .padding(32)
         .frame(width: 460)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.serviceState)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.serviceHealth)
         .onAppear { model.refreshServiceState() }
     }
 
     @ViewBuilder
     private var step: some View {
-        switch model.serviceState {
-        case .enabled:
+        let health = model.serviceHealth
+        let copy = ServiceCopy(health: health)
+        switch health {
+        case .running:
             VStack(spacing: 12) {
                 Label("All set — Limiar is in your menu bar.", systemImage: "checkmark.circle.fill")
                     .font(.headline)
@@ -59,30 +61,31 @@ struct WelcomeView: View {
                     .controlSize(.extraLarge)
                     .keyboardShortcut(.defaultAction)
             }
-        case .requiresApproval:
-            VStack(spacing: 12) {
-                Text("In System Settings, switch on **Limiar** in the list of background apps.")
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button { ServiceInstaller.openLoginItemsSettings() } label: {
-                    Text("Open Login Items").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .controlSize(.extraLarge)
-                .keyboardShortcut(.defaultAction)
+        case .connecting:
+            HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
+                Text(copy.title).foregroundStyle(.secondary)
             }
-        case .notInstalled, .notFound:
+            .frame(minHeight: 52)
+        case .notInstalled, .needsApproval, .notResponding:
             VStack(spacing: 10) {
-                Button { model.installService() } label: {
-                    Text("Turn On Charge Limit").frame(maxWidth: .infinity)
+                if health != .notInstalled {
+                    Text(copy.message)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Button(action: model.fixService) {
+                    Text(health == .notInstalled ? String(localized: "Turn On Charge Limit") : (copy.button ?? ""))
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
                 .controlSize(.extraLarge)
                 .keyboardShortcut(.defaultAction)
-                Text("macOS will ask you to allow Limiar once.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if health == .notInstalled {
+                    Text("macOS will ask you to allow Limiar once.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

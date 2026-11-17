@@ -8,7 +8,7 @@ public enum LimiarIDs {
     /// Legacy v1 install (pre-rename), removed on upgrade.
     public static let legacyDaemonLabel = "com.joaolucas.limiar.daemon"
     /// Bumped whenever the daemon/app wire contract or behaviour changes.
-    public static let version = "1.1.1"
+    public static let version = "1.1.2"
 }
 
 /// Errors are sent as codes so the app can localize them.

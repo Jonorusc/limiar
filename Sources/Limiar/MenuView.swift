@@ -245,60 +245,79 @@ struct ErrorBanner: View {
     }
 }
 
-/// Shown when the background service isn't running yet.
+/// Shown whenever the background service isn't running: explains why and offers the one fix.
 struct ServiceSetupCard: View {
     let model: AppModel
 
     var body: some View {
+        let copy = ServiceCopy(health: model.serviceHealth)
         VStack(alignment: .leading, spacing: 10) {
             Label {
-                Text(title).font(.headline)
+                Text(copy.title).font(.headline)
             } icon: {
-                Image(systemName: "lock.shield").foregroundStyle(.green)
+                Image(systemName: copy.symbol).foregroundStyle(copy.tint)
             }
-            Text(message)
+            Text(copy.message)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button(action: primaryAction) {
-                Text(buttonTitle).frame(maxWidth: .infinity)
+            if let button = copy.button {
+                Button(action: model.fixService) {
+                    Text(button).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+            } else {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(copy.progress).font(.callout).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 6)
             }
-            .buttonStyle(.glassProminent)
-            .controlSize(.large)
         }
         .padding(14)
         .background(.fill.quinary, in: .rect(cornerRadius: Tokens.cardRadius, style: .continuous))
         .onAppear { model.refreshServiceState() }
     }
+}
 
-    private var needsApproval: Bool { model.serviceState == .requiresApproval }
+/// Copy for each service state, shared by the menu card, Settings and the welcome window.
+struct ServiceCopy {
+    let title: String
+    let message: String
+    let symbol: String
+    let tint: Color
+    let button: String?
+    let progress: String
+    let short: String
 
-    private var title: String {
-        if model.needsReapproval { return String(localized: "Limiar was updated") }
-        return needsApproval ? String(localized: "Allow Limiar in Login Items") : String(localized: "Turn on the charge limit")
-    }
-
-    private var message: String {
-        if model.needsReapproval {
-            return String(localized: "macOS needs you to allow the new version once. Charging works normally until then.")
-        }
-        return needsApproval
-            ? String(localized: "Switch on Limiar in the list of background apps. This lets it pause charging even when the app is closed.")
-            : String(localized: "Limiar uses a small background service to pause charging. macOS will ask you to allow it once.")
-    }
-
-    private var buttonTitle: String {
-        if model.needsReapproval { return String(localized: "Allow Again…") }
-        return needsApproval ? String(localized: "Open Login Items") : String(localized: "Set Up…")
-    }
-
-    private func primaryAction() {
-        if model.needsReapproval {
-            model.reapproveService()
-        } else if needsApproval {
-            ServiceInstaller.openLoginItemsSettings()
-        } else {
-            model.installService()
+    init(health: AppModel.ServiceHealth) {
+        progress = String(localized: "Connecting…")
+        switch health {
+        case .running:
+            title = String(localized: "Running"); message = ""; symbol = "checkmark.circle.fill"; tint = .green
+            button = nil; short = String(localized: "Running")
+        case .connecting:
+            title = String(localized: "Starting Limiar…")
+            message = String(localized: "This takes a few seconds.")
+            symbol = "hourglass"; tint = .secondary; button = nil
+            short = String(localized: "Connecting…")
+        case .notInstalled:
+            title = String(localized: "Turn on the charge limit")
+            message = String(localized: "Limiar uses a small background service to pause charging. macOS will ask you to allow it once.")
+            symbol = "lock.shield"; tint = .green; button = String(localized: "Set Up…")
+            short = String(localized: "Not installed")
+        case .needsApproval:
+            title = String(localized: "Allow Limiar in Login Items")
+            message = String(localized: "Switch on Limiar in the list of background apps. This lets it pause charging even when the app is closed.")
+            symbol = "hand.raised"; tint = .orange; button = String(localized: "Open Login Items")
+            short = String(localized: "Waiting for approval")
+        case .notResponding:
+            title = String(localized: "The background service isn't responding")
+            message = String(localized: "This usually happens after updating Limiar. Turn it on again; macOS may ask you to allow it once more.")
+            symbol = "exclamationmark.arrow.circlepath"; tint = .orange; button = String(localized: "Turn On Again")
+            short = String(localized: "Not responding")
         }
     }
 }

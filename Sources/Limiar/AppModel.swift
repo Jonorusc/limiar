@@ -35,15 +35,16 @@ final class AppModel {
     private(set) var localBattery: BatteryReading?
     private(set) var actionError: String?
     private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
-    /// Registered and approved, but launchd refuses to start it. With ad-hoc signing this happens
-    /// after every app update: the launch constraint is tied to the old binary's signature.
-    private(set) var needsReapproval = false
+    /// True while registering/repairing the service, so buttons can show progress.
+    private(set) var isWorkingOnService = false
+    /// Set after the first failed connection attempt, so we don't flash "not responding" at launch.
+    private(set) var connectionAttempted = false
 
     @ObservationIgnored private let client = DaemonClient()
     @ObservationIgnored private var lastReportedError: DaemonError?
     @ObservationIgnored private var fallbackTimer: Timer?
     @ObservationIgnored private var servicePoll: Task<Void, Never>?
-    @ObservationIgnored private var failedConnections = 0
+    @ObservationIgnored private var autoRepairAttempted = false
 
     init() {
         client.onStatus = { [weak self] status in self?.apply(status) }
@@ -61,6 +62,27 @@ final class AppModel {
     var settings: Settings { status?.settings ?? Settings() }
     var mode: ChargeMode { status?.mode ?? .normal }
     var isConnected: Bool { status != nil }
+
+    /// One source of truth for the menu and Settings.
+    enum ServiceHealth: Equatable {
+        case running
+        case connecting
+        case notInstalled
+        case needsApproval
+        /// Registered and allowed, but launchd won't start it. With ad-hoc signing this happens
+        /// after an update: the launch constraint is tied to the previous binary's signature.
+        case notResponding
+    }
+
+    var serviceHealth: ServiceHealth {
+        if isConnected { return .running }
+        if isWorkingOnService { return .connecting }
+        switch serviceState {
+        case .enabled: return connectionAttempted ? .notResponding : .connecting
+        case .requiresApproval: return .needsApproval
+        case .notInstalled, .notFound: return .notInstalled
+        }
+    }
 
     var errorMessage: String? {
         if let actionError { return actionError }
@@ -136,51 +158,71 @@ final class AppModel {
 
     // MARK: Service
 
-    func installService() {
-        do {
-            serviceState = try ServiceInstaller.install()
-            if serviceState == .requiresApproval { ServiceInstaller.openLoginItemsSettings() }
-        } catch {
-            actionError = String(localized: "Couldn't install the background service: \(error.localizedDescription)")
+    /// The single action behind "Set Up…", "Open Login Items" and "Turn On Again".
+    func fixService() {
+        switch serviceHealth {
+        case .running, .connecting:
+            return
+        case .needsApproval:
+            ServiceInstaller.openLoginItemsSettings()
+            watchServiceUntilEnabled()
+        case .notInstalled:
+            Task { await registerService() }
+        case .notResponding:
+            Task { await repairService() }
         }
-        watchServiceUntilEnabled()
     }
 
     func uninstallService() {
         Task {
+            isWorkingOnService = true
+            defer { isWorkingOnService = false }
             do {
                 try await ServiceInstaller.uninstall()
             } catch {
                 actionError = String(localized: "Couldn't remove the background service: \(error.localizedDescription)")
             }
+            status = nil
             serviceState = ServiceInstaller.state
+            startFallback()
         }
     }
 
     func refreshServiceState() { serviceState = ServiceInstaller.state }
 
-    /// Re-registers the service so macOS records the new binary, then asks for approval again.
-    func reapproveService() {
-        Task {
-            try? await ServiceInstaller.uninstall()
-            needsReapproval = false
-            failedConnections = 0
-            installService()
+    private func registerService() async {
+        isWorkingOnService = true
+        defer { isWorkingOnService = false }
+        do {
+            serviceState = try ServiceInstaller.install()
+        } catch {
+            actionError = String(localized: "Couldn't install the background service: \(error.localizedDescription)")
+            serviceState = ServiceInstaller.state
+            return
         }
+        if serviceState == .requiresApproval { ServiceInstaller.openLoginItemsSettings() }
+        if serviceState == .enabled { client.connect() }
+        watchServiceUntilEnabled()
     }
 
-    /// Polls while the user approves the service in System Settings; cancelled once enabled.
+    /// Unregister + register so launchd records the current binary. Usually keeps the user's approval.
+    private func repairService() async {
+        isWorkingOnService = true
+        try? await ServiceInstaller.uninstall()
+        try? await Task.sleep(for: .seconds(1))
+        await registerService()
+    }
+
+    /// Polls while the user approves the service in System Settings; stops once connected.
     private func watchServiceUntilEnabled() {
         servicePoll?.cancel()
         servicePoll = Task { [weak self] in
             for _ in 0..<300 { // up to ~10 minutes
                 try? await Task.sleep(for: .seconds(2))
-                guard let self, !Task.isCancelled else { return }
+                guard let self, !Task.isCancelled, !self.isConnected else { return }
+                let previous = self.serviceState
                 self.serviceState = ServiceInstaller.state
-                if self.serviceState == .enabled {
-                    self.client.connect()
-                    return
-                }
+                if self.serviceState == .enabled, previous != .enabled { self.client.connect() }
             }
         }
     }
@@ -202,8 +244,6 @@ final class AppModel {
     private func apply(_ status: DaemonStatus) {
         self.status = status
         serviceState = .enabled
-        failedConnections = 0
-        needsReapproval = false
         servicePoll?.cancel()
         stopFallback()
         if let error = status.lastError, error != lastReportedError { Notifier.postError(error.localizedMessage) }
@@ -215,12 +255,14 @@ final class AppModel {
 
     private func markUnavailable() {
         status = nil
+        connectionAttempted = true
         serviceState = ServiceInstaller.state
-        if serviceState == .enabled {
-            failedConnections += 1
-            needsReapproval = failedConnections >= 2
-        }
         startFallback()
+        // Registered but not answering (typically right after an update): repair once, automatically.
+        if serviceState == .enabled, !autoRepairAttempted, !isWorkingOnService {
+            autoRepairAttempted = true
+            Task { await repairService() }
+        }
     }
 
     /// While the daemon is unreachable, still show the battery level (read-only, no root needed).

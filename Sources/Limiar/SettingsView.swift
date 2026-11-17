@@ -9,8 +9,14 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Charging") {
+            if let error = model.errorMessage {
+                ErrorBanner(message: error, dismiss: model.dismissError)
+                    .listRowBackground(Color.clear)
+            }
+
+            Section {
                 Toggle("Charge limit", isOn: Binding(get: { model.settings.enabled }, set: { model.setEnabled($0) }))
+                    .disabled(!model.isConnected)
                 if model.isConnected {
                     ChargeRangeControl(
                         level: model.display.soc,
@@ -20,6 +26,12 @@ struct SettingsView: View {
                     ) { limit, resume in model.setRange(limit: limit, resumeAt: resume) }
                     .padding(.vertical, 4)
                 }
+            } header: {
+                Text("Charging")
+            } footer: {
+                if !model.isConnected {
+                    Text("Turn on the background service below to change these.")
+                }
             }
 
             Section {
@@ -27,7 +39,7 @@ struct SettingsView: View {
                     get: { model.settings.magSafeGreenWhenPaused },
                     set: { model.setMagSafeGreen($0) }
                 ))
-                .disabled(!(model.status?.hasMagSafeLED ?? false))
+                .disabled(!model.isConnected || !(model.status?.hasMagSafeLED ?? false))
                 Toggle("Show percentage inside the battery", isOn: $showPercentage)
             } header: {
                 Text("Appearance")
@@ -38,15 +50,18 @@ struct SettingsView: View {
             Section("General") {
                 Toggle("Open at Login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                 LabeledContent("Background service") {
+                    let health = model.serviceHealth
+                    let copy = ServiceCopy(health: health)
                     HStack(spacing: 8) {
-                        Text(serviceText).foregroundStyle(.secondary)
-                        switch model.serviceState {
-                        case .enabled:
+                        if health == .connecting { ProgressView().controlSize(.small) }
+                        Text(copy.short).foregroundStyle(health == .running ? Color.secondary : Color.orange)
+                        switch health {
+                        case .running:
                             Button("Remove…", role: .destructive) { confirmUninstall = true }
-                        case .requiresApproval:
-                            Button("Open Login Items") { ServiceInstaller.openLoginItemsSettings() }
-                        case .notInstalled, .notFound:
-                            Button("Set Up…") { model.installService() }
+                        case .connecting:
+                            EmptyView()
+                        case .notInstalled, .needsApproval, .notResponding:
+                            Button(copy.button ?? "") { model.fixService() }
                         }
                     }
                 }
@@ -70,14 +85,6 @@ struct SettingsView: View {
             Button("Remove", role: .destructive) { model.uninstallService() }
         } message: {
             Text("Charging goes back to normal and the MagSafe light returns to macOS control.")
-        }
-    }
-
-    private var serviceText: String {
-        switch model.serviceState {
-        case .enabled: String(localized: "Running")
-        case .requiresApproval: String(localized: "Waiting for approval")
-        case .notInstalled, .notFound: String(localized: "Not installed")
         }
     }
 }
