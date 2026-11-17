@@ -11,7 +11,7 @@
 "Charging to %lld%%" = "Carregando até %lld%%";
 "Plugged in, not charging" = "Na tomada, sem carregar";
 "On battery" = "Na bateria";
-"Discharging to %lld%%" = "Descarregando até %lld%%";
+"On battery until %lld%%, even plugged in" = "Na bateria até %lld%%, mesmo na tomada";
 "Holding at 100%" = "Mantendo em 100%";
 "Charging to 100% once" = "Carregando até 100% uma vez";
 "Cancel" = "Cancelar";

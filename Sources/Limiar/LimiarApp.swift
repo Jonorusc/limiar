@@ -58,6 +58,34 @@ struct LimiarApp: App {
             RunLoop.main.run(until: Date().addingTimeInterval(5))
             print("timeout: no reply in 5 s")
             exit(1)
+        case "mode":
+            // Sends a mode exactly like the menu buttons do, then prints the resulting status.
+            //   --service mode discharge 50   |   --service mode topup   |   --service mode normal
+            let args = CommandLine.arguments
+            let kind = args.last ?? ""
+            let mode: ChargeMode
+            if let target = Int(kind) { mode = .discharge(target: target) }
+            else if kind == "topup" { mode = .topUp(completed: false) }
+            else { mode = .normal }
+            let conn = NSXPCConnection(machServiceName: LimiarIDs.daemonMachService, options: .privileged)
+            conn.remoteObjectInterface = NSXPCInterface(with: LimiarDaemonProtocol.self)
+            conn.resume()
+            let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable error in
+                print("xpc error:", error)
+                exit(1)
+            } as? LimiarDaemonProtocol
+            nonisolated(unsafe) let sameProxy = proxy // debug command: single-threaded use
+            proxy?.setMode(Wire.encode(mode)) { error in
+                print("setMode(\(mode)) ->", error ?? "ok")
+                sameProxy?.subscribe { data in
+                    let status = Wire.decode(DaemonStatus.self, data)
+                    print("mode now:", status.map { "\($0.mode)" } ?? "?", "| adapter:", status?.adapterEnabled ?? false)
+                    exit(0)
+                }
+            }
+            RunLoop.main.run(until: Date().addingTimeInterval(5))
+            print("timeout: no reply in 5 s")
+            exit(1)
         default:
             print("state:", ServiceInstaller.state)
         }

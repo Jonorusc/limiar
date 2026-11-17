@@ -97,7 +97,7 @@ struct MenuView: View {
 
     private var modeText: String {
         switch model.mode {
-        case .discharge(let target): String(localized: "Discharging to \(target)%")
+        case .discharge(let target): String(localized: "On battery until \(target)%, even plugged in")
         case .topUp(let completed): completed ? String(localized: "Holding at 100%") : String(localized: "Charging to 100% once")
         case .normal: ""
         }
@@ -177,8 +177,10 @@ struct MenuView: View {
         }
     }
 
+    /// Only levels below where charging would resume: anything above, Limiar already does on its own.
     private var dischargeTargets: [Int] {
-        Tokens.dischargeTargets.filter { $0 < model.display.soc }
+        let ceiling = min(model.display.soc, model.settings.resumeAt)
+        return Tokens.dischargeTargets.filter { $0 < ceiling }
     }
 
     private var isTopUp: Bool {
