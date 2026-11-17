@@ -5,3 +5,5 @@ build/
 .DS_Store
 # Internal working notes
 .docs/
+# Local tooling
+.claude/
