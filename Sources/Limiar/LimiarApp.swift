@@ -1,0 +1,104 @@
+import AppKit
+import LimiarCore
+import SwiftUI
+
+@main
+struct LimiarApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    init() {
+        // Headless service management, handy for scripts and debugging:
+        //   Limiar.app/Contents/MacOS/Limiar --service status|install|uninstall
+        let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "--service"), i + 1 < args.count {
+            Self.runServiceCommand(args[i + 1])
+        }
+    }
+
+    var body: some Scene {
+        MenuBarExtra {
+            MenuView(model: appDelegate.model)
+        } label: {
+            MenuBarLabel(display: appDelegate.model.display)
+        }
+        .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView(model: appDelegate.model)
+        }
+    }
+
+    @MainActor
+    private static func runServiceCommand(_ command: String) -> Never {
+        switch command {
+        case "install":
+            do { print("state:", try ServiceInstaller.install()) } catch { print("error:", error); exit(1) }
+        case "uninstall":
+            var finished = false
+            Task { @MainActor in
+                do { try await ServiceInstaller.uninstall(); print("uninstalled") } catch { print("error:", error) }
+                finished = true
+            }
+            while !finished { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
+        case "probe":
+            // Connects exactly like the app does and prints the daemon's answer or the XPC error.
+            let conn = NSXPCConnection(machServiceName: LimiarIDs.daemonMachService, options: .privileged)
+            conn.remoteObjectInterface = NSXPCInterface(with: LimiarDaemonProtocol.self)
+            conn.invalidationHandler = { print("connection invalidated") }
+            conn.interruptionHandler = { print("connection interrupted") }
+            conn.resume()
+            let proxy = conn.remoteObjectProxyWithErrorHandler { error in
+                print("xpc error:", error)
+                exit(1)
+            } as? LimiarDaemonProtocol
+            proxy?.subscribe { data in
+                print(String(decoding: data, as: UTF8.self))
+                exit(0)
+            }
+            RunLoop.main.run(until: Date().addingTimeInterval(5))
+            print("timeout: no reply in 5 s")
+            exit(1)
+        default:
+            print("state:", ServiceInstaller.state)
+        }
+        exit(0)
+    }
+}
+
+/// Owns the model and shows the welcome window on first run (before the menu is ever opened).
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let model = AppModel()
+    private var welcomeWindow: NSWindow?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if ServiceInstaller.state != .enabled { showWelcome() }
+    }
+
+    func showWelcome() {
+        if let welcomeWindow {
+            welcomeWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+            return
+        }
+        let window = NSWindow(
+            contentRect: .zero,
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered, defer: false
+        )
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView:
+            WelcomeView(model: model) { [weak window] in window?.close() }
+                .background(.regularMaterial)
+        )
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+        welcomeWindow = window
+    }
+}
