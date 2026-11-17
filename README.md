@@ -40,7 +40,7 @@ Keeping a lithium battery near 100% for long periods ages it faster. macOS has a
 ## Install
 
 1. Download `Limiar-<version>.dmg` from [Releases](../../releases) and drag **Limiar** to Applications.
-2. Limiar isn't notarized (that requires a paid Apple Developer account), so the first time you open it, **right-click › Open**. Or run:
+2. Limiar isn't notarized (that requires a paid Apple Developer account), so macOS blocks the first launch. Open it once, then go to **System Settings › Privacy & Security** and click **Open Anyway**. Or run:
    ```bash
    xattr -dr com.apple.quarantine /Applications/Limiar.app
    ```

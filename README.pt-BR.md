@@ -31,7 +31,7 @@ Manter uma bateria de lítio perto de 100% por muito tempo acelera o desgaste. O
 ## Instalar
 
 1. Baixe o `Limiar-<version>.dmg` em [Releases](../../releases) e arraste o **Limiar** para Aplicativos.
-2. O app não é notarizado (isso exige a conta paga de desenvolvedor da Apple). Na primeira vez, abra com **clique direito › Abrir**, ou rode `xattr -dr com.apple.quarantine /Applications/Limiar.app`.
+2. O app não é notarizado (isso exige a conta paga de desenvolvedor da Apple), então o macOS bloqueia a primeira abertura. Tente abrir uma vez e vá em **Ajustes do Sistema › Privacidade e Segurança › Abrir Mesmo Assim**. Ou rode `xattr -dr com.apple.quarantine /Applications/Limiar.app`.
 3. Clique em **Ativar Limite de Carga** e ative o **Limiar** em Ajustes do Sistema › Geral › Itens de Início.
 
 Para desinstalar: **Ajustes… › Serviço em segundo plano › Remover…**, depois mande o app para o Lixo.
