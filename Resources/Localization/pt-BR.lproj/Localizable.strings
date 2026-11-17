@@ -1,0 +1,97 @@
+/* Limiar — Português (Brasil) */
+
+/* Menu */
+"Background service not running" = "Serviço em segundo plano desligado";
+"Using battery until %lld%%" = "Usando a bateria até %lld%%";
+"Full — limit returns when unplugged" = "Cheia — o limite volta ao desconectar";
+"Charging to 100%" = "Carregando até 100%";
+"Charging — limit off" = "Carregando — limite desligado";
+"Limit off" = "Limite desligado";
+"Paused — resumes at %lld%%" = "Pausada — volta a carregar em %lld%%";
+"Charging to %lld%%" = "Carregando até %lld%%";
+"Plugged in, not charging" = "Na tomada, sem carregar";
+"On battery" = "Na bateria";
+"Discharging to %lld%%" = "Descarregando até %lld%%";
+"Holding at 100%" = "Mantendo em 100%";
+"Charging to 100% once" = "Carregando até 100% uma vez";
+"Cancel" = "Cancelar";
+"Charge Limit" = "Limite de Carga";
+"Charge to 100%" = "Carregar 100%";
+"Charges to 100% once. The limit comes back when you unplug." = "Carrega até 100% uma vez. O limite volta quando você desconectar.";
+"Use battery until" = "Usar a bateria até";
+"Discharge…" = "Descarregar…";
+"Runs on battery while plugged in, down to the level you pick." = "Usa a bateria mesmo na tomada, até o nível que você escolher.";
+"Settings…" = "Ajustes…";
+"Quit Limiar" = "Sair do Limiar";
+"Health %lld%% · %lld cycles" = "Saúde %lld%% · %lld ciclos";
+"Dismiss" = "Dispensar";
+"Battery %lld%%, %@" = "Bateria %lld%%, %@";
+
+/* Range control */
+"Stops at" = "Para em";
+"Resumes at" = "Volta em";
+"Resume charging at" = "Voltar a carregar em";
+"Stop charging at" = "Parar de carregar em";
+
+/* Service setup */
+"Allow Limiar in Login Items" = "Permita o Limiar nos Itens de Início";
+"Turn on the charge limit" = "Ative o limite de carga";
+"Switch on Limiar in the list of background apps. This lets it pause charging even when the app is closed." = "Ative o Limiar na lista de apps em segundo plano. Assim ele pausa a carga mesmo com o app fechado.";
+"Limiar uses a small background service to pause charging. macOS will ask you to allow it once." = "O Limiar usa um pequeno serviço em segundo plano para pausar a carga. O macOS vai pedir sua permissão uma vez.";
+"Open Login Items" = "Abrir Itens de Início";
+"Set Up…" = "Configurar…";
+"Couldn't install the background service: %@" = "Não foi possível instalar o serviço em segundo plano: %@";
+"Couldn't remove the background service: %@" = "Não foi possível remover o serviço em segundo plano: %@";
+"Couldn't change Open at Login: %@" = "Não foi possível alterar Abrir ao Iniciar Sessão: %@";
+"Couldn't read the battery." = "Não foi possível ler a bateria.";
+"Couldn't write SMC key %@." = "Não foi possível gravar a chave %@ no SMC.";
+
+"Limiar was updated" = "O Limiar foi atualizado";
+"macOS needs you to allow the new version once. Charging works normally until then." = "O macOS precisa que você permita a nova versão uma vez. Até lá, a carga funciona normalmente.";
+"Allow Again…" = "Permitir de Novo…";
+
+/* Settings */
+"Charging" = "Carga";
+"Charge limit" = "Limite de carga";
+"Appearance" = "Aparência";
+"Green MagSafe light while paused" = "Luz do MagSafe verde quando pausada";
+"Show percentage inside the battery" = "Mostrar porcentagem dentro da bateria";
+"Green means plugged in but deliberately not charging. Orange means charging." = "Verde: na tomada, mas sem carregar de propósito. Laranja: carregando.";
+"General" = "Geral";
+"Open at Login" = "Abrir ao Iniciar Sessão";
+"Background service" = "Serviço em segundo plano";
+"Remove…" = "Remover…";
+"Remove" = "Remover";
+"Running" = "Ativo";
+"Waiting for approval" = "Aguardando permissão";
+"Not installed" = "Não instalado";
+"About" = "Sobre";
+"Version" = "Versão";
+"Source code on GitHub" = "Código-fonte no GitHub";
+"Free and open source under the MIT License." = "Gratuito e de código aberto, sob a licença MIT.";
+"Remove the background service?" = "Remover o serviço em segundo plano?";
+"Charging goes back to normal and the MagSafe light returns to macOS control." = "A carga volta ao normal e a luz do MagSafe volta a ser controlada pelo macOS.";
+
+/* Welcome */
+"Welcome to Limiar" = "Boas-vindas ao Limiar";
+"Keep your battery healthy by stopping charging at a level you choose." = "Mantenha a bateria saudável parando a carga no nível que você escolher.";
+"Stops at 80% by default" = "Para em 80% por padrão";
+"Change the limit anytime from the menu bar." = "Mude o limite quando quiser pela barra de menus.";
+"The MagSafe light tells you" = "A luz do MagSafe avisa";
+"Green: paused at the limit. Orange: charging." = "Verde: pausada no limite. Laranja: carregando.";
+"Works in the background" = "Funciona em segundo plano";
+"Even while your Mac sleeps or the app is closed." = "Mesmo com o Mac em repouso ou o app fechado.";
+"All set — Limiar is in your menu bar." = "Tudo pronto — o Limiar está na sua barra de menus.";
+"Done" = "OK";
+"In System Settings, switch on **Limiar** in the list of background apps." = "Nos Ajustes do Sistema, ative o **Limiar** na lista de apps em segundo plano.";
+"Turn On Charge Limit" = "Ativar Limite de Carga";
+"macOS will ask you to allow Limiar once." = "O macOS vai pedir sua permissão uma vez.";
+
+/* Notifications */
+"Paused at %lld%%" = "Pausada em %lld%%";
+"Your Mac is running on battery until it's time to charge again." = "O Mac está usando a bateria até a hora de carregar de novo.";
+"Fully charged" = "Carga completa";
+"It stays full while plugged in. The limit returns when you unplug." = "Fica cheia enquanto estiver na tomada. O limite volta quando você desconectar.";
+"Reached %lld%%" = "Chegou a %lld%%";
+"Discharge finished. Your usual limit is back on." = "Descarga concluída. Seu limite de sempre voltou.";
+"Limiar needs attention" = "O Limiar precisa de atenção";
