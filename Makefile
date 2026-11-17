@@ -2,7 +2,6 @@
 #   make app       -> build/Limiar.app (daemon bundled, ad-hoc signed)
 #   make install   -> copies the app to /Applications (the app installs its own service)
 #   make icon      -> regenerates Resources/AppIcon.icns from Scripts/make-icon.swift
-#   make og        -> regenerates site/assets/og-image.png (link preview)
 #   make release   -> build/Limiar-<version>.zip and .dmg
 #   make test
 
@@ -13,7 +12,7 @@ BUILD      := build
 APP        := $(BUILD)/Limiar.app
 CONTENTS   := $(APP)/Contents
 
-.PHONY: all build app install test icon og release clean status uninstall-legacy
+.PHONY: all build app install test icon release clean status uninstall-legacy
 
 all: app
 
@@ -25,9 +24,6 @@ test:
 
 icon:
 	swift Scripts/make-icon.swift
-
-og:
-	swift Scripts/make-og.swift
 
 app: build
 	rm -rf "$(APP)"

@@ -100,6 +100,10 @@ The daemon runs as root because writing to the SMC requires it. It only accepts 
 
 The research by [batt](https://github.com/charlie0129/batt) and [Battery Toolkit](https://github.com/mhaeuser/Battery-Toolkit) and its macOS 27 forks on Apple Silicon charging control made this possible.
 
+## Website
+
+The landing page lives in its own repository: [Jonorusc/limiar-lp](https://github.com/Jonorusc/limiar-lp).
+
 ## License
 
 [MIT](LICENSE). Provided as is, without warranty: Limiar writes to your Mac's SMC. Use at your own risk.
