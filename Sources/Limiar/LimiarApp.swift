@@ -44,10 +44,10 @@ struct LimiarApp: App {
             // Connects exactly like the app does and prints the daemon's answer or the XPC error.
             let conn = NSXPCConnection(machServiceName: LimiarIDs.daemonMachService, options: .privileged)
             conn.remoteObjectInterface = NSXPCInterface(with: LimiarDaemonProtocol.self)
-            conn.invalidationHandler = { print("connection invalidated") }
-            conn.interruptionHandler = { print("connection interrupted") }
+            conn.invalidationHandler = { @Sendable in print("connection invalidated") }
+            conn.interruptionHandler = { @Sendable in print("connection interrupted") }
             conn.resume()
-            let proxy = conn.remoteObjectProxyWithErrorHandler { error in
+            let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable error in
                 print("xpc error:", error)
                 exit(1)
             } as? LimiarDaemonProtocol

@@ -44,10 +44,12 @@ final class DaemonClient {
             onNotice: { [weak self] notice in Task { @MainActor in self?.onNotice?(notice) } }
         )
         // Daemon restarted (KeepAlive): the same connection can be reused, just re-subscribe.
-        conn.interruptionHandler = { [weak self] in
+        // XPC calls these handlers on its own queue: they must be @Sendable (not main-actor
+        // isolated), or the Swift 6 runtime traps. Hop to the main actor explicitly.
+        conn.interruptionHandler = { @Sendable [weak self] in
             Task { @MainActor in self?.subscribe() }
         }
-        conn.invalidationHandler = { [weak self] in
+        conn.invalidationHandler = { @Sendable [weak self] in
             Task { @MainActor in self?.handleInvalidation() }
         }
         conn.resume()
@@ -103,7 +105,7 @@ final class DaemonClient {
     }
 
     private func proxy(onError: @escaping @Sendable (String) -> Void) -> LimiarDaemonProtocol? {
-        connection?.remoteObjectProxyWithErrorHandler { error in
+        connection?.remoteObjectProxyWithErrorHandler { @Sendable error in
             onError(error.localizedDescription)
         } as? LimiarDaemonProtocol
     }
