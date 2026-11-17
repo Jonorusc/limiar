@@ -117,9 +117,13 @@ func runDaemon() -> Never {
     }
     controller.start()
     server.resume()
-    // Keep the signal sources alive for the process lifetime (dispatchMain never returns).
+    // Keep the signal sources alive for the process lifetime.
     _ = Unmanaged.passRetained(signalSources as NSArray)
-    dispatchMain()
+    // Run the main CFRunLoop, not dispatchMain(): sleep/wake (IORegisterForSystemPower) and
+    // power-source change (IOPSNotificationCreateRunLoopSource) callbacks are run-loop sources
+    // on the main run loop. dispatchMain() exits the main thread, so they never fired.
+    // The main dispatch queue (timers, XPC hops, signals) is drained by this run loop too.
+    while true { CFRunLoopRun() }
 }
 
 let arguments = CommandLine.arguments.dropFirst()
